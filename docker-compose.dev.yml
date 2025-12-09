@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  docker-dashboard:
+    build: .
+    container_name: docker-dashboard-dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dashboard_settings.json:/app/data/dashboard_settings.json
+      - ./app.py:/app/app.py
+      - ./settings.py:/app/settings.py
+      - ./docker_discovery.py:/app/docker_discovery.py
+      - ./system_stats.py:/app/system_stats.py
+      - ./templates:/app/templates
+      - ./static:/app/static
+    environment:
+      - DATA_DIR=/app/data
+      - FLASK_DEBUG=1
+    restart: unless-stopped

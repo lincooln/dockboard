@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Dashboard</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: {{ ui_settings.background }};
+            --card: {{ ui_settings.card_background }};
+            --text: {{ ui_settings.text_color }};
+            --accent: {{ ui_settings.accent_color }};
+            --border: {{ ui_settings.border_color }};
+            --radius: {{ ui_settings.border_radius }}px;
+            --font: {{ ui_settings.font_size_base }}px;
+            --font-sm: {{ ui_settings.font_size_small }}px;
+            --font-lg: {{ ui_settings.font_size_large }}px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- СТАТУС БАР -->
+        <div class="status-bar">
+            <div class="status-row">
+                <div class="status-items">
+                    <!-- Хостнейм -->
+                    <div class="status-item">
+                        <img src="{{ url_for('static', filename='ip-icon.svg') }}" alt="IP" class="status-icon-img">
+                        <span class="status-value">{{ stats.hostname }}</span>
+                        {% if stats.local_ips %}
+                        <span class="font-sm text-muted" title="IP адреса: {{ stats.local_ips|join(', ') }}">
+                            ({{ stats.local_ips[0] }}
+                            {% if stats.local_ips|length > 1 %}
+                            +{{ stats.local_ips|length - 1 }}
+                            {% endif %})
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- CPU -->
+                    <div class="status-item">
+                        <img src="{{ url_for('static', filename='cpu-icon.svg') }}" alt="CPU" class="status-icon-img">
+                        <span class="status-value" id="cpu-value">{{ stats.cpu }}</span>
+                    </div>
+
+                    <!-- Память -->
+                    <div class="status-item">
+                        <img src="{{ url_for('static', filename='ram-icon.svg') }}" alt="RAM" class="status-icon-img">
+                        <span class="status-value" id="memory-value">{{ stats.memory.split('(')[0] }}</span>
+                        <span class="font-sm text-muted">
+                            ({{ stats.memory.split('(')[1] if '(' in stats.memory else '' }}
+                        </span>
+                    </div>
+
+                    <!-- Docker -->
+                    <div class="status-item">
+                        <img src="{{ url_for('static', filename='docker-icon.svg') }}" alt="Docker" class="status-icon-img">
+                        <span class="status-value" id="docker-total">{{ stats.containers.total }}</span>
+                        <div class="status-dots">
+                            <span class="status-dot">
+                                <span class="dot dot-running"></span>
+                                <span class="font-sm" id="docker-running">{{ stats.containers.running }}</span>
+                            </span>
+                            <span class="status-dot">
+                                <span class="dot dot-stopped"></span>
+                                <span class="font-sm" id="docker-stopped">{{ stats.containers.stopped }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Действия -->
+                <div class="status-actions">
+                    <a href="/favorites" class="btn-icon" title="Избранное">⭐</a>
+                    <a href="/details" class="btn-icon" title="Детализация">🖥️</a>
+                    <a href="/appearance" class="btn-icon" title="Оформление">🎨</a>
+                    <a href="/settings" class="btn-icon" title="Настройки">⚙️</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ДИСКИ -->
+        {% if stats.has_disks %}
+        <div class="grid grid-auto mb">
+            {% for disk in stats.disks %}
+            {% if not disk.mountpoint.startswith('/boot/efi') %}
+            <div class="disk-tile">
+                <div class="disk-header">
+                    <div class="disk-name">
+                        <span>{{ disk.icon }}</span>
+                        <span title="{{ disk.mountpoint }}">
+                            {{ disk.short_path }}
+                        </span>
+                    </div>
+                    <div class="disk-percent {{ disk.css_class }}">
+                        {{ "%.1f"|format(disk.percent) }}%
+                    </div>
+                </div>
+
+                <div class="disk-info">
+                    <span class="disk-type">{{ disk.type }}</span>
+                    <span class="disk-size">
+                        {{ "%.1f"|format(disk.used_gb) }}G/{{ "%.1f"|format(disk.total_gb) }}G
+                    </span>
+                </div>
+
+                <div class="disk-bar">
+                    <div class="disk-bar-fill {{ disk.css_class }}"
+                         style="width: {{ disk.percent }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- СЕРВИСЫ -->
+        <div class="grid grid-auto">
+            {% if services %}
+                {% for service in services %}
+                <div class="tile">
+                    <!-- Статус точка -->
+                    <div class="status-dot-container">
+                        <div class="dot {% if service.status == 'running' %}dot-running{% else %}dot-stopped{% endif %}"></div>
+                    </div>
+    
+                    <!-- Порт -->
+                    {% if service.ports %}
+                    <div class="tile-port">
+                        {{ service.ports[0] }}
+                    </div>
+                    {% endif %}
+    
+                    <!-- IP-адрес для остановленных контейнеров -->
+                    {% if service.ip_address and service.status != 'running' %}
+                    <div class="tile-port">
+                        {{ service.ip_address }}
+                    </div>
+                    {% endif %}
+    
+                    <!-- Заголовок -->
+                    <div class="tile-header">
+                        <span class="tile-icon">{{ service.icon }}</span>
+                        <span class="tile-title" title="{{ service.name }}">
+                            {{ service.name|truncate(20) }}
+                        </span>
+                    </div>
+    
+                    <!-- URL -->
+                    <div class="tile-content">
+                        {% if service.url %}
+                        <div class="tile-url" title="{{ service.url }}">
+                            {{ service.url|truncate(30) }}
+                        </div>
+                        {% endif %}
+                    </div>
+    
+                    <!-- Ссылка -->
+                    {% if service.url and service.status == 'running' %}
+                    <a href="{{ service.url }}" target="_blank" class="tile-link"></a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="tile empty-tile full-width-tile">
+                    <div class="empty-content">
+                        {% if error %}
+                        <div class="text-danger">❌ Ошибка загрузки сервисов: {{ error }}</div>
+                        {% else %}
+                        <div>📭 Нет запущенных сервисов</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- ИЗБРАННОЕ -->
+        {% if favorites %}
+        <div class="grid grid-auto mt-xxl">
+            {% for favorite in favorites %}
+            <div class="tile">
+                <div class="tile-header">
+                    <span class="tile-icon">{{ favorite.icon }}</span>
+                    <span class="tile-title" title="{{ favorite.name }}">
+                        {{ favorite.name|truncate(20) if favorite.name else favorite.url|truncate(20) }}
+                    </span>
+                </div>
+                <div class="tile-content">
+                    <div class="tile-url" title="{{ favorite.url }}">
+                        {{ favorite.url|truncate(30) }}
+                    </div>
+                </div>
+                <a href="{{ favorite.url }}" target="_blank" class="tile-link"></a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+    </div>
+    
+    <script>
+        // Функция для обновления статус бара
+        function updateStatusBar() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.system) {
+                        // Обновляем CPU
+                        document.getElementById('cpu-value').textContent = data.system.cpu_percent.toFixed(1) + '%';
+                        
+                        // Обновляем память
+                        const memory = data.system.memory;
+                        const memoryPercent = memory.percent.toFixed(1) + '%';
+                        const memoryUsedGB = (memory.used / (1024 ** 3)).toFixed(1);
+                        const memoryTotalGB = (memory.total / (1024 ** 3)).toFixed(1);
+                        document.getElementById('memory-value').textContent = memoryPercent;
+                        
+                        // Обновляем Docker контейнеры
+                        if (data.containers) {
+                            document.getElementById('docker-total').textContent = data.containers.total;
+                            document.getElementById('docker-running').textContent = data.containers.running;
+                            document.getElementById('docker-stopped').textContent = data.containers.stopped;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка обновления статуса:', error);
+                });
+        }
+        
+        // Обновляем статус бар каждые 5 секунд
+        setInterval(updateStatusBar, 5000);
+        
+        // Обновляем сразу при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatusBar();
+        });
+    </script>
+</body>
+</html>

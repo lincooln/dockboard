@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки - Docker Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: {{ ui_settings.background if ui_settings else '#1a1a1a' }};
+            --card: {{ ui_settings.card_background if ui_settings else '#2d2d2d' }};
+            --text: {{ ui_settings.text_color if ui_settings else '#e0e0e0' }};
+            --accent: {{ ui_settings.accent_color if ui_settings else '#4CAF50' }};
+            --border: {{ ui_settings.border_color if ui_settings else '#404040' }};
+            --radius: {{ ui_settings.border_radius if ui_settings else '8' }}px;
+            --font: {{ ui_settings.font_size_base if ui_settings else '14' }}px;
+            --font-sm: {{ ui_settings.font_size_small if ui_settings else '12' }}px;
+            --font-lg: {{ ui_settings.font_size_large if ui_settings else '16' }}px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space);
+            margin-bottom: var(--space);
+        }
+
+        .container-settings {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space);
+        }
+
+        .container-line {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-xs);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .status-circle {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-circle.running { background: #4CAF50; }
+        .status-circle.exited { background: #ff4757; }
+        .status-circle.paused { background: #ffa502; }
+
+        .container-form-grid {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: var(--space-sm);
+            align-items: center;
+            margin-top: var(--space);
+        }
+
+        @media (max-width: 768px) {
+            .settings-grid,
+            .container-settings {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- СТАТУС БАР -->
+        <div class="status-bar">
+            <div class="status-row">
+                <div class="status-items">
+                    <!-- Действия -->
+                    <div class="status-actions">
+                    <a href="/" class="btn-icon" title="Главная">🏠</a>
+                    <a href="/favorites" class="btn-icon" title="Избранное">⭐</a>
+                    <a href="/details" class="btn-icon" title="Детализация">🖥️</a>
+                    <a href="/appearance" class="btn-icon" title="Оформление">🎨</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- СООБЩЕНИЯ -->
+        {% if message %}
+        <div class="section message {{ message.type }}">
+            {{ message.text }}
+        </div>
+        {% endif %}
+
+        <!-- СОРТИРОВКА И ДИСКИ -->
+        <div class="settings-grid">
+            <!-- СОРТИРОВКА -->
+            <div class="section">
+                <h2 class="section-title">Сортировка</h2>
+                <form id="sort-form">
+                    <div class="form-group">
+                        <label class="form-label">Способ сортировки:</label>
+                        <select name="method" id="sort-method" class="form-input">
+                            <option value="name_asc" {% if sort_settings.method == 'name_asc' %}selected{% endif %}>
+                                По имени (А → Я)
+                            </option>
+                            <option value="name_desc" {% if sort_settings.method == 'name_desc' %}selected{% endif %}>
+                                По имени (Я → А)
+                            </option>
+                            <option value="ports_asc" {% if sort_settings.method == 'ports_asc' %}selected{% endif %}>
+                                По портам (↑ возрастание)
+                            </option>
+                            <option value="ports_desc" {% if sort_settings.method == 'ports_desc' %}selected{% endif %}>
+                                По портам (↓ убывание)
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" name="group_by_status" id="group-by-status"
+                                   class="form-check-input" {% if sort_settings.group_by_status %}checked{% endif %}>
+                            <label for="group-by-status" class="form-check-label">
+                                Сначала работающие контейнеры
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ДИСКИ -->
+            <div class="section">
+                <h2 class="section-title">Диски</h2>
+                <form id="disk-form">
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" name="show_system" id="show-system"
+                                   class="form-check-input" {% if disk_settings.show_system %}checked{% endif %}>
+                            <label for="show-system" class="form-check-label">
+                                Показывать системные диски
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" name="show_mounted" id="show-mounted"
+                                   class="form-check-input" {% if disk_settings.show_mounted %}checked{% endif %}>
+                            <label for="show-mounted" class="form-check-label">
+                                Показывать сетевые диски
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- КОНТЕЙНЕРЫ -->
+        <div class="section">
+            <h2 class="section-title">Контейнеры</h2>
+
+            {% if not services %}
+            <div class="text-center text-muted mb">
+                📭 Нет контейнеров
+            </div>
+            {% endif %}
+
+            <div class="container-settings">
+                {% for service in services %}
+                <div class="container-item">
+                    <!-- ЗАГОЛОВОК И СКРЫТИЕ -->
+                    <div class="container-header">
+                        <div class="container-name">
+                            {{ service.icon }} {{ service.name }}
+                        </div>
+
+                        <div class="flex items-center gap-sm">
+                            <!-- СТАТУС -->
+                            <div class="status-indicator">
+                                <div class="status-circle {{ service.status }}"></div>
+                                <span class="status-text font-sm">
+                                    {% if service.status == 'running' %}работает
+                                    {% elif service.status == 'exited' %}остановлен
+                                    {% else %}{{ service.status }}{% endif %}
+                                </span>
+                            </div>
+
+                            <!-- СКРЫТИЕ -->
+                            <div class="form-check">
+                                <input type="checkbox"
+                                       id="hide_{{ service.id }}"
+                                       class="form-check-input"
+                                       {% if not service.visible %}checked{% endif %}>
+                                <label for="hide_{{ service.id }}" class="form-check-label font-sm">
+                                    скрыть
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- НАСТРОЙКИ -->
+                    <div class="container-form-grid">
+                        <!-- Имя -->
+                        <label class="form-label">Имя:</label>
+                        <input type="text"
+                               class="form-input"
+                               value="{{ service.name }}"
+                               data-id="{{ service.id }}"
+                               data-field="custom_name">
+
+                        <!-- URL -->
+                        <label class="form-label">URL:</label>
+                        <input type="text"
+                               class="form-input"
+                               value="{{ service.custom_url }}"
+                               data-id="{{ service.id }}"
+                               data-field="custom_url"
+                               placeholder="http://...">
+
+                        <!-- Иконка -->
+                        <label class="form-label">Иконка:</label>
+                        <input type="text"
+                               class="form-input"
+                               value="{{ service.icon }}"
+                               data-id="{{ service.id }}"
+                               data-field="icon"
+                               placeholder="🐳">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Сохранение настроек сортировки
+        document.getElementById('sort-form').addEventListener('change', function() {
+            const formData = new FormData(this);
+            const data = {
+                method: formData.get('method'),
+                group_by_status: formData.get('group_by_status') === 'on'
+            };
+
+            saveSettings('/api/update_sort_settings', data);
+        });
+
+        // Сохранение настроек дисков
+        document.getElementById('disk-form').addEventListener('change', function() {
+            const formData = new FormData(this);
+            const data = {
+                show_system: formData.get('show_system') === 'on',
+                show_mounted: formData.get('show_mounted') === 'on'
+            };
+
+            saveSettings('/api/update_disk_settings', data);
+        });
+
+        // Сохранение настроек контейнеров
+        function saveContainerSettings(containerId, field, value) {
+            const data = {
+                container_id: containerId,
+                key: field,
+                value: value
+            };
+
+            saveSettings('/api/update_settings', data);
+        }
+
+        // Сохранение видимости контейнера
+        function saveVisibility(containerId, visible) {
+            const data = {
+                container_id: containerId,
+                key: 'visible',
+                value: !visible  // Инвертируем, так как чекбокс "скрыть"
+            };
+
+            saveSettings('/api/update_settings', data);
+        }
+
+        // Общая функция сохранения
+        function saveSettings(url, data) {
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'ok') {
+                    console.log('✅ Настройки сохранены');
+                }
+            });
+        }
+
+        // Обработчики для контейнеров
+        document.addEventListener('DOMContentLoaded', function() {
+            // Чекбоксы скрытия
+            document.querySelectorAll('input[id^="hide_"]').forEach(checkbox => {
+                const containerId = checkbox.id.replace('hide_', '');
+
+                checkbox.addEventListener('change', function() {
+                    saveVisibility(containerId, this.checked);
+                });
+            });
+
+            // Поля ввода
+            document.querySelectorAll('input[data-id]').forEach(input => {
+                let timeout;
+
+                input.addEventListener('input', function() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        const containerId = this.getAttribute('data-id');
+                        const field = this.getAttribute('data-field');
+                        const value = this.value.trim();
+
+                        saveContainerSettings(containerId, field, value);
+                    }, 1000);
+                });
+            });
+
+            // Автодобавление http:// для URL
+            document.querySelectorAll('input[placeholder*="http://"]').forEach(input => {
+                input.addEventListener('blur', function() {
+                    let value = this.value.trim();
+                    if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+                        if (!value.includes('://')) {
+                            this.value = 'http://' + value;
+
+                            const containerId = this.getAttribute('data-id');
+                            const field = this.getAttribute('data-field');
+                            saveContainerSettings(containerId, field, this.value);
+                        }
+                    }
+                });
+            });
+        });
+        
+        // Функция для обновления статус бара
+        function updateStatusBar() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.system) {
+                        // Обновляем CPU
+                        document.getElementById('cpu-value').textContent = data.system.cpu_percent.toFixed(1) + '%';
+                        
+                        // Обновляем память
+                        const memory = data.system.memory;
+                        const memoryPercent = memory.percent.toFixed(1) + '%';
+                        const memoryUsedGB = (memory.used / (1024 ** 3)).toFixed(1);
+                        const memoryTotalGB = (memory.total / (1024 ** 3)).toFixed(1);
+                        document.getElementById('memory-value').textContent = memoryPercent;
+                        
+                        // Обновляем Docker контейнеры
+                        if (data.containers) {
+                            document.getElementById('docker-total').textContent = data.containers.total;
+                            document.getElementById('docker-running').textContent = data.containers.running;
+                            document.getElementById('docker-stopped').textContent = data.containers.stopped;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка обновления статуса:', error);
+                });
+        }
+        
+        // Обновляем статус бар каждые 5 секунд
+        setInterval(updateStatusBar, 5000);
+        
+        // Обновляем сразу при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatusBar();
+        });
+    </script>
+</body>
+</html>

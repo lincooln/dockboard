@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детализация контейнеров - Docker Dashboard</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: {{ ui_settings.background }};
+            --card: {{ ui_settings.card_background }};
+            --text: {{ ui_settings.text_color }};
+            --accent: {{ ui_settings.accent_color }};
+            --border: {{ ui_settings.border_color }};
+            --radius: {{ ui_settings.border_radius }}px;
+            --font: {{ ui_settings.font_size_base }}px;
+            --font-sm: {{ ui_settings.font_size_small }}px;
+            --font-lg: {{ ui_settings.font_size_large }}px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .refresh-interval {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .refresh-interval select {
+            padding: 5px 10px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-input {
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            min-width: 200px;
+        }
+        
+        .status-filter {
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th {
+            background: rgba(0,0,0,0.05);
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+        }
+        
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        
+        tr:hover {
+            background: rgba(0,0,0,0.03);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .dot-running {
+            background-color: #4CAF50;
+        }
+        
+        .dot-stopped {
+            background-color: #f44336;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-size: var(--font-sm);
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .action-btn-stop {
+            background: #f44336;
+        }
+        
+        .action-btn-start {
+            background: #4CAF50;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .container-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .container-icon {
+            font-size: 1.2em;
+        }
+        
+        .metrics-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        .metric-value {
+            font-weight: 500;
+        }
+        
+        .metric-percent {
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- СТАТУС БАР -->
+        <div class="status-bar">
+            <div class="status-row">
+                <div class="status-items">
+                <!-- Действия -->
+                    <div class="status-actions">
+                    <a href="/" class="btn-icon" title="Главная">🏠</a>
+                    <a href="/favorites" class="btn-icon" title="Избранное">⭐</a>
+                    <a href="/appearance" class="btn-icon" title="Оформление">🎨</a>
+                    <a href="/settings" class="btn-icon" title="Настройки">⚙️</a>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="controls">
+                <button id="refreshBtn" class="action-btn" onclick="refreshData()">
+                    🔄 Обновить
+                </button>
+                <div class="refresh-interval">
+                    <label for="intervalSelect">Интервал обновления:</label>
+                    <select id="intervalSelect" onchange="setRefreshInterval(this.value)">
+                        <option value="5">5 секунд</option>
+                        <option value="10" selected>10 секунд</option>
+                        <option value="30">30 секунд</option>
+                    </select>
+                </div>
+            </div>
+        
+        <div class="filter-controls">
+            <input type="text" id="nameFilter" class="filter-input" placeholder="Фильтр по имени..." onkeyup="filterContainers()">
+            <select id="statusFilter" class="status-filter" onchange="filterContainers()">
+                <option value="">Все статусы</option>
+                <option value="running">Запущен</option>
+                <option value="stopped">Остановлен</option>
+            </select>
+        </div>
+        
+        <table id="containersTable">
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort="name">Имя контейнера</th>
+                    <th class="sortable" data-sort="status">Статус</th>
+                    <th class="sortable" data-sort="cpu">CPU (%)</th>
+                    <th class="sortable" data-sort="memory">Память</th>
+                    <th class="sortable" data-sort="io_read">I/O Чтение</th>
+                    <th class="sortable" data-sort="io_write">I/O Запись</th>
+                    <th class="sortable" data-sort="network_rx">Сеть RX</th>
+                    <th class="sortable" data-sort="network_tx">Сеть TX</th>
+                    <th class="sortable" data-sort="pids">Процессы</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="containersBody">
+                <!-- Данные будут добавлены здесь динамически -->
+            </tbody>
+        </table>
+        
+        <div id="loadingMessage" style="text-align: center; padding: 20px;">
+            Загрузка данных...
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval = null;
+        let currentInterval = 10000; // 10 секунд по умолчанию
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            startAutoRefresh();
+            
+            // Установка обработчиков событий для сортировки
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', () => sortTable(th.dataset.sort));
+            });
+        });
+        
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            refreshInterval = setInterval(loadData, currentInterval);
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+        
+        function setRefreshInterval(seconds) {
+            currentInterval = seconds * 1000;
+            startAutoRefresh();
+        }
+        
+        function loadData() {
+            fetch('/api/containers/stats')
+                .then(response => response.json())
+                .then(data => {
+                    displayData(data);
+                    document.getElementById('loadingMessage').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки данных:', error);
+                    document.getElementById('loadingMessage').textContent = 'Ошибка загрузки данных';
+                });
+        }
+        
+        function refreshData() {
+            loadData();
+        }
+        
+        function displayData(containers) {
+            const tbody = document.getElementById('containersBody');
+            tbody.innerHTML = '';
+            
+            containers.forEach(container => {
+                const row = document.createElement('tr');
+                
+                // Имя контейнера с иконкой
+                const nameCell = document.createElement('td');
+                nameCell.className = 'container-name';
+                nameCell.innerHTML = `
+                    <span class="container-icon">${container.icon}</span>
+                    <span>${container.name}</span>
+                `;
+                
+                // Статус
+                const statusCell = document.createElement('td');
+                statusCell.innerHTML = `
+                    <div class="status-indicator">
+                        <span class="status-dot ${container.status === 'running' ? 'dot-running' : 'dot-stopped'}"></span>
+                        <span>${container.status === 'running' ? 'Запущен' : 'Остановлен'}</span>
+                    </div>
+                `;
+                
+                // CPU
+                const cpuCell = document.createElement('td');
+                cpuCell.className = 'metrics-cell';
+                cpuCell.innerHTML = `
+                    <span class="metric-value">${container.cpu.toFixed(1)}%</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${container.cpu}%"></div>
+                    </div>
+                `;
+                
+                // Память
+                const memoryCell = document.createElement('td');
+                memoryCell.className = 'metrics-cell';
+                memoryCell.innerHTML = `
+                    <span class="metric-value">${container.memory_used_mb.toFixed(1)} MB</span>
+                    <span class="metric-percent">${container.memory_percent.toFixed(1)}%</span>
+                `;
+                
+                // I/O чтение
+                const ioReadCell = document.createElement('td');
+                ioReadCell.textContent = formatBytes(container.io_read);
+                
+                // I/O запись
+                const ioWriteCell = document.createElement('td');
+                ioWriteCell.textContent = formatBytes(container.io_write);
+                
+                // Сеть RX
+                const networkRxCell = document.createElement('td');
+                networkRxCell.textContent = formatBytes(container.network_rx);
+                
+                // Сеть TX
+                const networkTxCell = document.createElement('td');
+                networkTxCell.textContent = formatBytes(container.network_tx);
+                
+                // Процессы
+                const pidsCell = document.createElement('td');
+                pidsCell.textContent = container.pids;
+                
+                // Действия
+                const actionsCell = document.createElement('td');
+                actionsCell.innerHTML = `
+                    ${container.status === 'running' ? 
+                        `<button class="action-btn action-btn-stop" onclick="stopContainer('${container.id}')">⏹️ Остановить</button>` : 
+                        `<button class="action-btn action-btn-start" onclick="startContainer('${container.id}')">▶️ Запустить</button>`
+                    }
+                `;
+                
+                row.appendChild(nameCell);
+                row.appendChild(statusCell);
+                row.appendChild(cpuCell);
+                row.appendChild(memoryCell);
+                row.appendChild(ioReadCell);
+                row.appendChild(ioWriteCell);
+                row.appendChild(networkRxCell);
+                row.appendChild(networkTxCell);
+                row.appendChild(pidsCell);
+                row.appendChild(actionsCell);
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function sortTable(column) {
+            // Временная реализация сортировки - в реальном приложении потребуется серверная сортировка
+            alert('Сортировка по ' + column + ' будет реализована в будущих версиях');
+        }
+        
+        function filterContainers() {
+            // Временная реализация фильтрации - в реальном приложении потребуется серверная фильтрация
+            alert('Фильтрация будет реализована в будущих версиях');
+        }
+        
+        function startContainer(containerId) {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span>';
+            btn.disabled = true;
+            
+            fetch(`/api/container/${containerId}/start`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert('Контейнер запущен');
+                    loadData(); // Обновляем данные
+                } else {
+                    alert('Ошибка запуска контейнера: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка запуска контейнера:', error);
+                alert('Ошибка запуска контейнера');
+            })
+            .finally(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            });
+        }
+        
+        function stopContainer(containerId) {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span>';
+            btn.disabled = true;
+            
+            fetch(`/api/container/${containerId}/stop`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert('Контейнер остановлен');
+                    loadData(); // Обновляем данные
+                } else {
+                    alert('Ошибка остановки контейнера: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка остановки контейнера:', error);
+                alert('Ошибка остановки контейнера');
+            })
+            .finally(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            });
+        }
+        
+        // Функция для обновления статус бара
+        function updateStatusBar() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.system) {
+                        // Обновляем CPU
+                        document.getElementById('cpu-value').textContent = data.system.cpu_percent.toFixed(1) + '%';
+                        
+                        // Обновляем память
+                        const memory = data.system.memory;
+                        const memoryPercent = memory.percent.toFixed(1) + '%';
+                        const memoryUsedGB = (memory.used / (1024 ** 3)).toFixed(1);
+                        const memoryTotalGB = (memory.total / (1024 ** 3)).toFixed(1);
+                        document.getElementById('memory-value').textContent = memoryPercent;
+                        
+                        // Обновляем Docker контейнеры
+                        if (data.containers) {
+                            document.getElementById('docker-total').textContent = data.containers.total;
+                            document.getElementById('docker-running').textContent = data.containers.running;
+                            document.getElementById('docker-stopped').textContent = data.containers.stopped;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка обновления статуса:', error);
+                });
+        }
+        
+        // Обновляем статус бар каждые 5 секунд
+        setInterval(updateStatusBar, 5000);
+        
+        // Обновляем сразу при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatusBar();
+        });
+    </script>
+</body>
+</html>

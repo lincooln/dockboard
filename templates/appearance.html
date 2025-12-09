@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оформление - Docker Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: {{ ui_settings.background }};
+            --card: {{ ui_settings.card_background }};
+            --text: {{ ui_settings.text_color }};
+            --accent: {{ ui_settings.accent_color }};
+            --border: {{ ui_settings.border_color }};
+            --radius: {{ ui_settings.border_radius }}px;
+            --font: {{ ui_settings.font_size_base }}px;
+            --font-sm: {{ ui_settings.font_size_small }}px;
+            --font-lg: {{ ui_settings.font_size_large }}px;
+        }
+
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: var(--space);
+            margin-bottom: var(--space);
+        }
+
+        .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .settings-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+            margin-top: var(--space);
+        }
+
+        .settings-column {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: var(--space);
+        }
+
+        .column-title {
+            color: var(--accent);
+            margin-bottom: var(--space);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .settings-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- СТАТУС БАР -->
+        <div class="status-bar">
+            <div class="status-row">
+                <div class="status-items">
+                <!-- Действия -->
+                    <div class="status-actions">
+                    <a href="/" class="btn-icon" title="Главная">🏠</a>
+                    <a href="/favorites" class="btn-icon" title="Избранное">⭐</a>
+                    <a href="/details" class="btn-icon" title="Детализация">🖥️</a>
+                    <a href="/settings" class="btn-icon" title="Настройки">⚙️</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ТЕМЫ -->
+        <div class="section">
+            <div class="theme-grid">
+
+                <!-- Тема 1: Темная -->
+                <div class="theme-card" onclick="applyTheme('dark')" style="background: #2d2d2d; border: 1px solid #404040; color: #e0e0e0;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #4CAF50;">Темная</div>
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-swatch" style="background: #1a1a1a;"></div>
+                            <div class="color-swatch" style="background: #2d2d2d;"></div>
+                            <div class="color-swatch" style="background: #4CAF50;"></div>
+                            <div class="color-swatch" style="background: #404040;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тема 3: синяя -->
+                <div class="theme-card" onclick="applyTheme('darkblue')" style="background: #1e3a5f; border: 1px solid #2d4a7a; color: #e0e0e0;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #4cc9f0;">Синяя</div>
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-swatch" style="background: #0d1b2a;"></div>
+                            <div class="color-swatch" style="background: #1e3a5f;"></div>
+                            <div class="color-swatch" style="background: #4cc9f0;"></div>
+                            <div class="color-swatch" style="background: #2d4a7a;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тема 6: Оранжевая -->
+                <div class="theme-card" onclick="applyTheme('orange')" style="background: #4a3222; border: 1px solid #6a4830; color: #f5f5f5;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #ff9800;">Оранжевая</div>
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-swatch" style="background: #2c1e14;"></div>
+                            <div class="color-swatch" style="background: #4a3222;"></div>
+                            <div class="color-swatch" style="background: #ff9800;"></div>
+                            <div class="color-swatch" style="background: #6a4830;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тема 5: Фиолетовая -->
+                <div class="theme-card" onclick="applyTheme('purple')" style="background: #2d2543; border: 1px solid #4a3c65; color: #e0e0e0;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #9d8ae3;">Фиолетовая</div>
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-swatch" style="background: #1a142a;"></div>
+                            <div class="color-swatch" style="background: #2d2543;"></div>
+                            <div class="color-swatch" style="background: #9d8ae3;"></div>
+                            <div class="color-swatch" style="background: #4a3c65;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тема 2: Светлая -->
+                <div class="theme-card" onclick="applyTheme('gray')" style="background: #e0e0e0; border: 1px solid #b0b0b0; color: #1a1a;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #666666;">Серая</div>
+                        </div>
+                    </div>
+                    <div class="theme-colors">
+                        <div class="color-swatch" style="background: #ffffff;"></div>
+                        <div class="color-swatch" style="background: #e0e0e0;"></div>
+                        <div class="color-swatch" style="background: #666666;"></div>
+                        <div class="color-swatch" style="background: #b0b0b0;"></div>
+                    </div>
+                </div>
+
+                <!-- Тема 4: Зеленая -->
+                <div class="theme-card" onclick="applyTheme('green')" style="background: #1b4332; border: 1px solid #2d6a4f; color: #e0e0e0;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #52b788;">Зеленая</div>
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-swatch" style="background: #081c15;"></div>
+                            <div class="color-swatch" style="background: #1b4332;"></div>
+                            <div class="color-swatch" style="background: #52b788;"></div>
+                            <div class="color-swatch" style="background: #2d6a4f;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тема 7: Красная -->
+                <div class="theme-card" onclick="applyTheme('red')" style="background: #4a232a; border: 1px solid #6a3036; color: #f5e0e0;">
+                    <div class="flex items-center justify-between mb-xs">
+                        <div>
+                            <div class="font-sm font-weight:600;" style="color: #e53935;">Красная</div>
+                        </div>
+                        <div class="theme-colors">
+                            <div class="color-swatch" style="background: #2c1417;"></div>
+                            <div class="color-swatch" style="background: #4a232a;"></div>
+                            <div class="color-swatch" style="background: #e53935;"></div>
+                            <div class="color-swatch" style="background: #6a3036;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тема 8: Бирюзовая -->
+                <div class="theme-card" onclick="applyTheme('turquoise')" style="background: #1a3636; border: 1px solid #2a5252; color: #e0f5f5;">
+                <div class="flex items-center justify-between mb-xs">
+                    <div>
+                        <div class="font-sm font-weight:600;" style="color: #4db6ac;">Бирюзовая</div>
+                    </div>
+                    <div class="theme-colors">
+                        <div class="color-swatch" style="background: #0f1e1e;"></div>
+                        <div class="color-swatch" style="background: #1a3636;"></div>
+                        <div class="color-swatch" style="background: #4db6ac;"></div>
+                        <div class="color-swatch" style="background: #2a5252;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- НАСТРОЙКИ -->
+        <div class="settings-columns">
+            <!-- ВЫБОР ЦВЕТА -->
+            <div class="settings-column">
+                <h3 class="column-title">Выбор цвета</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Инвертировать цвета:</label>
+                    <div class="form-check">
+                        <input type="checkbox" id="invert-colors" class="form-check-input">
+                        <label for="invert-colors" class="form-check-label">
+                            Применить инверсию цветов (создает светлую тему из темной)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Цвет фона страницы:</label>
+                    <div class="color-picker">
+                        <input type="color" name="background" id="background"
+                               value="{{ ui_settings.background }}" class="color-input">
+                        <div class="color-preview" id="bg-preview"></div>
+                        <input type="text" class="form-input"
+                               value="{{ ui_settings.background }}" readonly
+                               style="flex: 1;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Цвет фона карточек:</label>
+                    <div class="color-picker">
+                        <input type="color" name="card_background" id="card_background"
+                               value="{{ ui_settings.card_background }}" class="color-input">
+                        <div class="color-preview" id="card-preview"></div>
+                        <input type="text" class="form-input"
+                               value="{{ ui_settings.card_background }}" readonly
+                               style="flex: 1;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Цвет основного текста:</label>
+                    <div class="color-picker">
+                        <input type="color" name="text_color" id="text_color"
+                               value="{{ ui_settings.text_color }}" class="color-input">
+                        <div class="color-preview" id="text-preview"></div>
+                        <input type="text" class="form-input"
+                               value="{{ ui_settings.text_color }}" readonly
+                               style="flex: 1;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Цвет акцентных элементов:</label>
+                    <div class="color-picker">
+                        <input type="color" name="accent_color" id="accent_color"
+                               value="{{ ui_settings.accent_color }}" class="color-input">
+                        <div class="color-preview" id="accent-preview"></div>
+                        <input type="text" class="form-input"
+                               value="{{ ui_settings.accent_color }}" readonly
+                               style="flex: 1;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Цвет границ элементов:</label>
+                    <div class="color-picker">
+                        <input type="color" name="border_color" id="border_color"
+                               value="{{ ui_settings.border_color }}" class="color-input">
+                        <div class="color-preview" id="border-preview"></div>
+                        <input type="text" class="form-input"
+                               value="{{ ui_settings.border_color }}" readonly
+                               style="flex: 1;">
+                    </div>
+                </div>
+                
+            </div>
+
+            <!-- РАЗМЕРЫ И ШРИФТЫ -->
+            <div class="settings-column">
+                <h3 class="column-title">Размеры и шрифты</h3>
+
+                <div class="form-group">
+                    <label class="form-label">Скругление углов:</label>
+                    <select name="border_radius" id="border_radius" class="form-input">
+                        <option value="0" {% if ui_settings.border_radius == '0' %}selected{% endif %}>
+                            Нет скругления
+                        </option>
+                        <option value="4" {% if ui_settings.border_radius == '4' %}selected{% endif %}>
+                            Маленькое (4px)
+                        </option>
+                        <option value="8" {% if ui_settings.border_radius == '8' %}selected{% endif %}>
+                            Среднее (8px)
+                        </option>
+                        <option value="12" {% if ui_settings.border_radius == '12' %}selected{% endif %}>
+                            Большое (12px)
+                        </option>
+                        <option value="16" {% if ui_settings.border_radius == '16' %}selected{% endif %}>
+                            Очень большое (16px)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Размер основного текста:</label>
+                    <select name="font_size_base" id="font_size_base" class="form-input">
+                        {% for size in [12, 13, 14, 15, 16, 17, 18] %}
+                        <option value="{{ size }}" {% if ui_settings.font_size_base == size|string %}selected{% endif %}>
+                            {{ size }}px (основной текст)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Размер заголовков:</label>
+                    <select name="font_size_large" id="font_size_large" class="form-input">
+                        {% for size in [14, 15, 16, 17, 18, 19, 20] %}
+                        <option value="{{ size }}" {% if ui_settings.font_size_large == size|string %}selected{% endif %}>
+                            {{ size }}px (заголовки)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Размер вспомогательного текста:</label>
+                    <select name="font_size_small" id="font_size_small" class="form-input">
+                        {% for size in [10, 11, 12, 13, 14] %}
+                        <option value="{{ size }}" {% if ui_settings.font_size_small == size|string %}selected{% endif %}>
+                            {{ size }}px (вспомогательный текст)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    
+    </div>
+
+    <script>
+        // Инициализация превью цветов
+        function initColorPreviews() {
+            const colors = ['background', 'card_background', 'text_color', 'accent_color', 'border_color'];
+            colors.forEach(color => {
+                const input = document.getElementById(color);
+                const preview = document.getElementById(color.replace('_', '-') + '-preview');
+                const textInput = input.nextElementSibling.nextElementSibling;
+
+                if (input && preview) {
+                    preview.style.backgroundColor = input.value;
+                    textInput.value = input.value;
+
+                    input.addEventListener('input', function() {
+                        preview.style.backgroundColor = this.value;
+                        textInput.value = this.value;
+                        updatePreview();
+                    });
+                }
+            });
+        }
+
+        // Обновление превью
+        function updatePreview() {
+            const colors = ['background', 'card_background', 'text_color', 'accent_color', 'border_color'];
+            const data = {};
+
+            colors.forEach(color => {
+                const input = document.getElementById(color);
+                if (input) data[color] = input.value;
+            });
+
+            const selects = ['border_radius', 'font_size_base', 'font_size_large', 'font_size_small'];
+            selects.forEach(select => {
+                const element = document.getElementById(select);
+                if (element) data[select] = element.value;
+            });
+
+            // Обновляем CSS переменные
+            document.documentElement.style.setProperty('--bg', data.background);
+            document.documentElement.style.setProperty('--card', data.card_background);
+            document.documentElement.style.setProperty('--text', data.text_color);
+            document.documentElement.style.setProperty('--accent', data.accent_color);
+            document.documentElement.style.setProperty('--border', data.border_color);
+            document.documentElement.style.setProperty('--radius', data.border_radius + 'px');
+            document.documentElement.style.setProperty('--font', data.font_size_base + 'px');
+            document.documentElement.style.setProperty('--font-sm', data.font_size_small + 'px');
+            document.documentElement.style.setProperty('--font-lg', data.font_size_large + 'px');
+
+            // Автосохранение
+            clearTimeout(window.saveTimeout);
+            window.saveTimeout = setTimeout(saveSettings, 1000);
+        }
+
+        // Сохранение настроек
+        function saveSettings() {
+            const data = {
+                background: document.getElementById('background').value,
+                card_background: document.getElementById('card_background').value,
+                text_color: document.getElementById('text_color').value,
+                accent_color: document.getElementById('accent_color').value,
+                border_color: document.getElementById('border_color').value,
+                border_radius: document.getElementById('border_radius').value,
+                font_size_base: document.getElementById('font_size_base').value,
+                font_size_large: document.getElementById('font_size_large').value,
+                font_size_small: document.getElementById('font_size_small').value
+            };
+
+            fetch('/api/update_ui_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'ok') {
+                    console.log('✅ Настройки сохранены');
+                }
+            });
+        }
+
+        // Применение темы
+        function applyTheme(themeName) {
+            // Сбрасываем чекбокс инверсии при выборе новой темы
+            document.getElementById('invert-colors').checked = false;
+            
+            const themes = {
+                'dark': {
+                    background: '#1a1a1a',
+                    card_background: '#2d2d2d',
+                    text_color: '#e0e0e0',
+                    accent_color: '#4CAF50',
+                    border_color: '#404040',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'light': {
+                    background: '#ffffff',
+                    card_background: '#f5f5f5',
+                    text_color: '#333333',
+                    accent_color: '#2196F3',
+                    border_color: '#dddddd',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'gray': {
+                    background: '#ffffff',
+                    card_background: '#e0e0e0',
+                    text_color: '#1a1a1a',
+                    accent_color: '#66666',
+                    border_color: '#b0b0b0',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'darkblue': {
+                    background: '#0d1b2a',
+                    card_background: '#1e3a5f',
+                    text_color: '#e0e0e0',
+                    accent_color: '#4cc9f0',
+                    border_color: '#2d4a7a',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'green': {
+                    background: '#081c15',
+                    card_background: '#1b4332',
+                    text_color: '#e0e0e0',
+                    accent_color: '#52b788',
+                    border_color: '#2d6a4f',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'purple': {
+                    background: '#1a142a',
+                    card_background: '#2d2543',
+                    text_color: '#e0e0e0',
+                    accent_color: '#9d8ae3',
+                    border_color: '#4a3c65',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'orange': {
+                    background: '#2c1e14',
+                    card_background: '#4a3222',
+                    text_color: '#f5f5f5',
+                    accent_color: '#ff9800',
+                    border_color: '#6a4830',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'red': {
+                    background: '#2c1417',
+                    card_background: '#4a232a',
+                    text_color: '#f5e0e0',
+                    accent_color: '#e53935',
+                    border_color: '#6a3036',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                },
+                'turquoise': {
+                    background: '#0f1e1e',
+                    card_background: '#1a3636',
+                    text_color: '#e0f5f5',
+                    accent_color: '#4db6ac',
+                    border_color: '#2a5252',
+                    border_radius: '8',
+                    font_size_base: '14',
+                    font_size_large: '16',
+                    font_size_small: '12'
+                }
+            };
+
+            const theme = themes[themeName];
+            if (!theme) return;
+
+            Object.keys(theme).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = theme[key];
+                    if (element.type === 'color') {
+                        const preview = element.nextElementSibling;
+                        if (preview) preview.style.backgroundColor = theme[key];
+                    }
+                }
+            });
+
+            updatePreview();
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            initColorPreviews();
+
+            // Слушатели изменений
+            document.querySelectorAll('select').forEach(select => {
+                select.addEventListener('change', updatePreview);
+            });
+
+            document.querySelectorAll('input[type="color"]').forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+            
+            // Обработчик для инвертирования цветов
+            let originalColors = null;
+            
+            document.getElementById('invert-colors').addEventListener('change', function() {
+                if (this.checked) {
+                    // Сохраняем текущие цвета
+                    originalColors = {
+                        background: document.getElementById('background').value,
+                        card_background: document.getElementById('card_background').value,
+                        text_color: document.getElementById('text_color').value,
+                        accent_color: document.getElementById('accent_color').value,
+                        border_color: document.getElementById('border_color').value
+                    };
+                    
+                    // Инвертируем цвета
+                    document.getElementById('background').value = invertColor(originalColors.text_color);
+                    document.getElementById('card_background').value = invertColor(originalColors.accent_color);
+                    document.getElementById('text_color').value = invertColor(originalColors.background);
+                    document.getElementById('accent_color').value = invertColor(originalColors.card_background);
+                    document.getElementById('border_color').value = invertColor(originalColors.border_color);
+                    
+                    // Обновляем превью
+                    initColorPreviews();
+                    updatePreview();
+                } else {
+                    // Восстанавливаем сохраненные цвета
+                    if (originalColors) {
+                        document.getElementById('background').value = originalColors.background;
+                        document.getElementById('card_background').value = originalColors.card_background;
+                        document.getElementById('text_color').value = originalColors.text_color;
+                        document.getElementById('accent_color').value = originalColors.accent_color;
+                        document.getElementById('border_color').value = originalColors.border_color;
+                        
+                        // Обновляем превью
+                        initColorPreviews();
+                        updatePreview();
+                    } else {
+                        // Восстанавливаем темную тему по умолчанию
+                        applyTheme('dark');
+                    }
+                }
+            });
+            
+            // При выборе новой темы сбрасываем чекбокс инверсии
+            document.getElementById('invert-colors').addEventListener('change', function() {
+                if (this.checked) {
+                    // Сохраняем текущие цвета
+                    originalColors = {
+                        background: document.getElementById('background').value,
+                        card_background: document.getElementById('card_background').value,
+                        text_color: document.getElementById('text_color').value,
+                        accent_color: document.getElementById('accent_color').value,
+                        border_color: document.getElementById('border_color').value
+                    };
+                    
+                    // Инвертируем цвета
+                    document.getElementById('background').value = invertColor(originalColors.text_color);
+                    document.getElementById('card_background').value = invertColor(originalColors.accent_color);
+                    document.getElementById('text_color').value = invertColor(originalColors.background);
+                    document.getElementById('accent_color').value = invertColor(originalColors.card_background);
+                    document.getElementById('border_color').value = invertColor(originalColors.border_color);
+                    
+                    // Обновляем превью
+                    initColorPreviews();
+                    updatePreview();
+                } else {
+                    // Восстанавливаем сохраненные цвета
+                    if (originalColors) {
+                        document.getElementById('background').value = originalColors.background;
+                        document.getElementById('card_background').value = originalColors.card_background;
+                        document.getElementById('text_color').value = originalColors.text_color;
+                        document.getElementById('accent_color').value = originalColors.accent_color;
+                        document.getElementById('border_color').value = originalColors.border_color;
+                        
+                        // Обновляем превью
+                        initColorPreviews();
+                        updatePreview();
+                    } else {
+                        // Восстанавливаем темную тему по умолчанию
+                        applyTheme('dark');
+                    }
+                }
+            });
+            
+            // При выборе новой темы сбрасываем чекбокс инверсии
+            const originalApplyTheme = applyTheme;
+            window.applyTheme = function(themeName) {
+                // Сбрасываем чекбокс инверсии при выборе новой темы
+                document.getElementById('invert-colors').checked = false;
+                
+                // Вызываем оригинальную функцию
+                originalApplyTheme(themeName);
+            };
+        });
+        
+        // Функция для инвертирования цвета
+        function invertColor(hex) {
+            // Удаляем # если он есть
+            hex = hex.replace('#', '');
+            
+            // Проверяем, что строка содержит 6 символов
+            if (hex.length !== 6) {
+                // Если это сокращенный формат (например, #333), расширяем его
+                if (hex.length === 3) {
+                    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                } else {
+                    // Возвращаем исходный цвет, если формат неправильный
+                    return '#' + hex;
+                }
+            }
+            
+            // Преобразуем в RGB
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            
+            // Инвертируем значения
+            r = 255 - r;
+            g = 255 - g;
+            b = 255 - b;
+            
+            // Возвращаем в формат HEX
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        
+        
+    </script>
+</body>
+</html>

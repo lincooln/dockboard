@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  docker-dashboard:
+    build: .
+    container_name: docker-dashboard
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dashboard_data:/app/data
+    restart: unless-stopped
+    environment:
+      - DATA_DIR=/app/data
+    labels:
+      - "com.description=Docker Dashboard"
+      - "com.maintainer=Your Name"
+
+volumes:
+  dashboard_data:
+    driver: local
