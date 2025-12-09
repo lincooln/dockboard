@@ -201,4 +201,4 @@ yarn-error.log*
 dashboard_settings.json
 
 # System stats cache
-*.stats
+*.stats.continue/

@@ -50,9 +50,9 @@
                     <!-- Память -->
                     <div class="status-item">
                         <img src="{{ url_for('static', filename='ram-icon.svg') }}" alt="RAM" class="status-icon-img">
-                        <span class="status-value" id="memory-value">{{ stats.memory.split('(')[0] }}</span>
+                        <span class="status-value" id="memory-value">{{ stats.memory.split('(')[0] if stats.memory and '(' in stats.memory else stats.memory }}</span>
                         <span class="font-sm text-muted">
-                            ({{ stats.memory.split('(')[1] if '(' in stats.memory else '' }}
+                            ({{ stats.memory.split('(')[1] if stats.memory and '(' in stats.memory else '' }}
                         </span>
                     </div>
 
@@ -184,7 +184,13 @@
             {% for favorite in favorites %}
             <div class="tile">
                 <div class="tile-header">
-                    <span class="tile-icon">{{ favorite.icon }}</span>
+                    <div class="favorite-icon">
+                        {% if favorite.is_url_icon %}
+                            <img src="{{ favorite.icon|string|trim }}" alt="Favicon" class="favicon-img">
+                        {% else %}
+                            <span class="default-favicon">{{ favorite.icon|string|trim if favorite.icon else '🌐' }}</span>
+                        {% endif %}
+                    </div>
                     <span class="tile-title" title="{{ favorite.name }}">
                         {{ favorite.name|truncate(20) if favorite.name else favorite.url|truncate(20) }}
                     </span>

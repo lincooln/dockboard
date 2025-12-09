@@ -172,6 +172,9 @@ def dashboard():
 
         # 7. Получаем избранные сайты
         favorites = settings.get_favorites()
+        # Добавляем флаг is_url_icon для каждого избранного сайта
+        for fav in favorites:
+            fav['is_url_icon'] = fav['icon'].startswith('http') if fav.get('icon') else False
 
         # 8. Форматируем статистику для шаблона
         formatted_stats = {
@@ -203,7 +206,16 @@ def dashboard():
         print(f"❌ Ошибка в dashboard(): {e}")
         return render_template('index.html',
                              services=[],
-                             stats={'has_disks': False, 'containers': {'total': 0, 'running': 0, 'stopped': 0}},
+                             stats={
+                                 'hostname': 'N/A',
+                                 'cpu': '0.0%',
+                                 'memory': 'N/A',
+                                 'containers': {'total': 0, 'running': 0, 'stopped': 0},
+                                 'disks': [],
+                                 'has_disks': False,
+                                 'local_ips': [],
+                                 'update_time': datetime.now().strftime("%H:%M:%S")
+                             },
                              favorites=[],
                              ui_settings=settings.get_ui_settings(),
                              error=str(e))
@@ -246,6 +258,9 @@ def favorites_page():
     """Страница настроек избранных сайтов"""
     try:
         favorites = settings.get_favorites()
+        # Добавляем флаг is_url_icon для каждого избранного сайта
+        for fav in favorites:
+            fav['is_url_icon'] = fav['icon'].startswith('http') if fav.get('icon') else False
         ui_settings = settings.get_ui_settings()
         
         # Получаем системную статистику
@@ -325,6 +340,19 @@ def get_stats():
         'system': stats,
         'containers': container_stats
     })
+
+@app.route('/api/get_favicon')
+def api_get_favicon():
+    """
+    API для получения URL фавикона по заданному URL сайта.
+    Возвращает JSON с favicon_url.
+    """
+    url = request.args.get('url')
+    if not url:
+        return jsonify({'status': 'error', 'message': 'URL не указан'}), 400
+
+    favicon_url = settings.get_favicon(url)
+    return jsonify({'status': 'ok', 'favicon_url': favicon_url})
 
 @app.route('/api/hide_service', methods=['POST'])
 def hide_service():
@@ -715,14 +743,14 @@ def handle_save_favorites():
             url = request.form.get(url_key, '').strip()
             if url:
                 name = request.form.get(name_key, '').strip()
+                icon_key = f'fav_icon_{i}'  # Добавлено для получения иконки
+                icon = request.form.get(icon_key, '').strip() # Добавлено для получения иконки
+
                 favorites.append({
                     'name': name if name else url,
                     'url': normalize_url(url),
-                    'icon': '🌐'
+                    'icon': icon if icon else '🌐' # Используем полученную иконку, или глобус по умолчанию
                 })
-
-        # Обновляем иконки
-        favorites = settings.update_favorite_icons(favorites)
 
         # Сохраняем
         success = settings.update_favorites(favorites)
@@ -731,6 +759,9 @@ def handle_save_favorites():
             message = {'type': 'success', 'text': '✅ Избранные сайты сохранены'}
         else:
             message = {'type': 'error', 'text': '❌ Ошибка сохранения избранных сайтов'}
+
+        # Загружаем обновленный список избранных сайтов, чтобы получить актуальные иконки
+        favorites = settings.get_favorites()
 
         return render_template('favorites.html',
                              favorites=favorites,

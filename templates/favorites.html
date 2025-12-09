@@ -39,7 +39,6 @@
 <body>
     <div class="page-container">
         <!-- СТАТУС БАР -->
-        <!-- СТАТУС БАР -->
         <div class="status-bar">
             <div class="status-row">
                 <div class="status-items">
@@ -69,9 +68,14 @@
                 {% if favorites %}
                     {% for favorite in favorites %}
                     <div class="favorite-row" data-index="{{ loop.index0 }}">
-                        <div class="favorite-icon">
-                            {{ favorite.icon }}
-                        </div>
+<div class="favorite-icon">
+    {% if favorite.is_url_icon %}
+        <img src="{{ favorite.icon|string|trim }}" alt="Favicon" class="favicon-img">
+    {% else %}
+        <span class="default-favicon">{{ favorite.icon|string|trim if favorite.icon else '🌐' }}</span>
+    {% endif %}
+</div>
+<input type="hidden" data-field="icon" value="{{ favorite.icon|string|trim if favorite.icon else '🌐' }}">
                         <input type="text" class="form-input"
                                placeholder="Название (необязательно)"
                                value="{{ favorite.name }}"
@@ -96,7 +100,10 @@
 
                 <!-- ПУСТАЯ СТРОКА ДЛЯ ДОБАВЛЕНИЯ -->
                 <div class="favorite-row" id="new-favorite-row">
-                    <div class="favorite-icon">🌐</div>
+                    <div class="favorite-icon">
+                        <span class="default-favicon">🌐</span>
+                    </div>
+                    <input type="hidden" data-field="icon" value="🌐">
                     <input type="text" class="form-input"
                            placeholder="Название (необязательно)"
                            data-field="name"
@@ -140,31 +147,40 @@
 
             // Создаем новую строку
             const container = document.getElementById('favorites-container');
-            const newRow = document.getElementById('new-favorite-row').cloneNode(true);
-            newRow.id = '';
-            newRow.setAttribute('data-index', document.querySelectorAll('.favorite-row:not(#new-favorite-row)').length);
 
-            // Заполняем значения
-            newRow.querySelector('input[data-field="name"]').value = name;
-            newRow.querySelector('input[data-field="url"]').value = normalizedUrl;
-            newRow.querySelector('.favorite-icon').textContent = '🌐';
+            // Создаем новую строку избранного
+            const newFavoriteElement = document.createElement('div');
+            newFavoriteElement.className = 'favorite-row';
+            newFavoriteElement.setAttribute('data-index', document.querySelectorAll('.favorite-row:not(#new-favorite-row)').length);
+            newFavoriteElement.innerHTML = `
+                <div class="favorite-icon">
+                    <span class="default-favicon">🌐</span>
+                </div>
+                <input type="hidden" data-field="icon" value="🌐">
+                <input type="text" class="form-input"
+                       placeholder="Название (необязательно)"
+                       value="${name}"
+                       data-field="name">
+                <input type="text" class="form-input"
+                       placeholder="https://example.com"
+                       value="${normalizedUrl}"
+                       data-field="url"
+                       required>
+                <div class="favorite-actions">
+                    <button type="button" class="btn-delete" onclick="deleteFavorite(this)" title="Удалить">
+                        🗑️
+                    </button>
+                </div>
+            `;
+            // Вставляем новую строку перед "новой пустой строкой"
+            container.insertBefore(newFavoriteElement, document.getElementById('new-favorite-row'));
 
-            // Меняем кнопку на удаление
-            const addBtn = newRow.querySelector('.btn-add');
-            addBtn.className = 'btn-delete';
-            addBtn.innerHTML = '🗑️';
-            addBtn.onclick = function() { deleteFavorite(this); };
-            addBtn.title = 'Удалить';
-
-            // Вставляем перед последней строкой
-            container.insertBefore(newRow, document.getElementById('new-favorite-row'));
-
-            // Очищаем поля новой строки
+            // Очищаем поля ввода для следующего сайта
             nameInput.value = '';
             urlInput.value = '';
             urlInput.focus();
 
-            // Сохраняем
+            // Сохраняем все избранные сайты на сервере
             saveFavorites();
         }
 
@@ -194,7 +210,8 @@
             rows.forEach(row => {
                 const nameInput = row.querySelector('input[data-field="name"]');
                 const urlInput = row.querySelector('input[data-field="url"]');
-                const icon = row.querySelector('.favorite-icon').textContent;
+                const iconInput = row.querySelector('input[data-field="icon"]');
+                const icon = iconInput ? iconInput.value.trim() : '🌐';
 
                 const name = nameInput.value.trim();
                 const url = urlInput.value.trim();

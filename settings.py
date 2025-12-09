@@ -7,8 +7,6 @@ from urllib.parse import urlparse
 DATA_DIR = os.environ.get('DATA_DIR', '.')
 SETTINGS_FILE = os.path.join(DATA_DIR, 'dashboard_settings.json')
 
-# Файл для хранения настроек
-SETTINGS_FILE = 'dashboard_settings.json'
 
 def load_settings():
     """
@@ -408,10 +406,12 @@ def update_favorite_icons(favorites):
     Обновляет иконки для каждого избранного сайта, пытаясь получить их фавикон.
     """
     for fav in favorites:
-        if fav.get('url'):
-            fav['icon'] = get_favicon(fav['url'])
-        else:
-            fav['icon'] = '🌐'
+        # Обновляем иконку только если она отсутствует или является значением по умолчанию
+        if not fav.get('icon') or fav.get('icon') == '🌐':
+            if fav.get('url'):
+                fav['icon'] = str(get_favicon(fav['url'])).strip()
+            else:
+                fav['icon'] = '🌐'
     return favorites
 
 def get_favicon(url):
@@ -431,8 +431,8 @@ def get_favicon(url):
         try:
             response = requests.get(favicon_url, timeout=2)
             if response.status_code == 200:
-                # Если получили фавикон, возвращаем иконку сайта
-                return '🌐'  # Можно было бы вернуть URL иконки, но для простоты оставляем эмодзи
+                # Если получили фавикон, возвращаем URL фавикона
+                return favicon_url
         except:
             pass
 
@@ -446,11 +446,11 @@ def get_favicon(url):
             try:
                 response = requests.get(favicon_url, timeout=2)
                 if response.status_code == 200:
-                    return '🌐'
+                    return favicon_url
             except:
                 continue
 
-        return '🌐'
+        return '🌐'  # Если ничего не найдено, возвращаем глобус
     except Exception as e:
         print(f"❌ Ошибка получения фавикона для {url}: {e}")
         return '🌐'

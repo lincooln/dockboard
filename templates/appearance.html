@@ -426,9 +426,6 @@
 
         // Применение темы
         function applyTheme(themeName) {
-            // Сбрасываем чекбокс инверсии при выборе новой темы
-            document.getElementById('invert-colors').checked = false;
-            
             const themes = {
                 'dark': {
                     background: '#1a1a1a',
@@ -604,46 +601,6 @@
                 }
             });
             
-            // При выборе новой темы сбрасываем чекбокс инверсии
-            document.getElementById('invert-colors').addEventListener('change', function() {
-                if (this.checked) {
-                    // Сохраняем текущие цвета
-                    originalColors = {
-                        background: document.getElementById('background').value,
-                        card_background: document.getElementById('card_background').value,
-                        text_color: document.getElementById('text_color').value,
-                        accent_color: document.getElementById('accent_color').value,
-                        border_color: document.getElementById('border_color').value
-                    };
-                    
-                    // Инвертируем цвета
-                    document.getElementById('background').value = invertColor(originalColors.text_color);
-                    document.getElementById('card_background').value = invertColor(originalColors.accent_color);
-                    document.getElementById('text_color').value = invertColor(originalColors.background);
-                    document.getElementById('accent_color').value = invertColor(originalColors.card_background);
-                    document.getElementById('border_color').value = invertColor(originalColors.border_color);
-                    
-                    // Обновляем превью
-                    initColorPreviews();
-                    updatePreview();
-                } else {
-                    // Восстанавливаем сохраненные цвета
-                    if (originalColors) {
-                        document.getElementById('background').value = originalColors.background;
-                        document.getElementById('card_background').value = originalColors.card_background;
-                        document.getElementById('text_color').value = originalColors.text_color;
-                        document.getElementById('accent_color').value = originalColors.accent_color;
-                        document.getElementById('border_color').value = originalColors.border_color;
-                        
-                        // Обновляем превью
-                        initColorPreviews();
-                        updatePreview();
-                    } else {
-                        // Восстанавливаем темную тему по умолчанию
-                        applyTheme('dark');
-                    }
-                }
-            });
             
             // При выборе новой темы сбрасываем чекбокс инверсии
             const originalApplyTheme = applyTheme;
@@ -656,34 +613,42 @@
             };
         });
         
-        // Функция для инвертирования цвета
+        // Функция для инвертирования цвета с учетом яркости
         function invertColor(hex) {
             // Удаляем # если он есть
             hex = hex.replace('#', '');
             
             // Проверяем, что строка содержит 6 символов
             if (hex.length !== 6) {
-                // Если это сокращенный формат (например, #333), расширяем его
                 if (hex.length === 3) {
                     hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
                 } else {
-                    // Возвращаем исходный цвет, если формат неправильный
-                    return '#' + hex;
+                    return '#' + hex; // Возвращаем исходный цвет, если формат неправильный
                 }
             }
             
-            // Преобразуем в RGB
             let r = parseInt(hex.substring(0, 2), 16);
             let g = parseInt(hex.substring(2, 4), 16);
             let b = parseInt(hex.substring(4, 6), 16);
             
-            // Инвертируем значения
-            r = 255 - r;
-            g = 255 - g;
-            b = 255 - b;
+            // Вычисляем яркость цвета (Luminance)
+            // Формула: 0.299*R + 0.587*G + 0.114*B
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
             
-            // Возвращаем в формат HEX
-            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            let invertedR, invertedG, invertedB;
+            
+            if (luminance > 0.5) { // Если цвет светлый, инвертируем к темному
+                invertedR = Math.max(0, r - 100);
+                invertedG = Math.max(0, g - 100);
+                invertedB = Math.max(0, b - 100);
+            } else { // Если цвет темный, инвертируем к светлому
+                invertedR = Math.min(255, r + 100);
+                invertedG = Math.min(255, g + 100);
+                invertedB = Math.min(255, b + 100);
+            }
+            
+            // Преобразуем обратно в HEX
+            return '#' + ((1 << 24) + (invertedR << 16) + (invertedG << 8) + invertedB).toString(16).slice(1);
         }
         
         

@@ -36,12 +36,6 @@
     padding: 0;
 }
 
-/* === БАЗА === */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
 
 body {
     font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -235,7 +229,7 @@ body {
 }
 
 .tile-icon {
-    font-size: 1.2em;
+    font-size: 0.6em;
 }
 
 .tile-title {
@@ -518,6 +512,22 @@ body {
 .favorite-icon {
     text-align: center;
     font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; /* Устанавливаем фиксированную ширину */
+    height: 20px; /* Устанавливаем фиксированную высоту */
+}
+
+.favorite-icon .favicon-img {
+    width: 20px;  /* Размер иконки */
+    height: 20px; /* Размер иконки */
+    object-fit: contain;
+    border-radius: 4px; /* Немного скругляем углы */
+}
+
+.favorite-icon .default-favicon {
+    font-size: 1.2em; /* Размер глобуса по умолчанию */
 }
 
 .favorite-actions {
